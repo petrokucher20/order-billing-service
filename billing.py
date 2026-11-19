@@ -1,6 +1,6 @@
 billing.py – початковий код (містить Common, Control та Stamp Coupling)
 # Дефект 1 (Common Coupling): глобальна змінна змінюється та читається напряму
-GLOBAL_TAX_RATE = 0.20
+
 
 class CustomerProfile:
     def __init__(self, user_id, email, password_hash, city, loyalty_points):
@@ -10,25 +10,32 @@ class CustomerProfile:
         self.city = city
         self.loyalty_points = loyalty_points
 
-# Дефект 2 (Stamp Coupling): передається весь об'єкт CustomerProfile замість потрібного поля city
-def calculate_delivery_cost(customer: CustomerProfile, weight_kg: float) -> float:
-    base_rate = 50.0 if customer.city == "Ivano-Frankivsk" else 110.0
+def calculate_delivery_cost(city: str, weight_kg: float) -> float:
+    base_rate = 50.0 if city == "Ivano-Frankivsk" else 110.0
     return base_rate + (weight_kg * 12.0)
 
 # Дефект 3 (Control Coupling): параметр mode_flag керує внутрішнім розгалуженням функції
-def process_invoice(amount: float, customer: CustomerProfile, weight_kg: float, mode_flag: int) -> dict:
-    global GLOBAL_TAX_RATE
-    if mode_flag == 1:
-        # Звичайний розрахунок замовлення
-        delivery = calculate_delivery_cost(customer, weight_kg)
-        total = (amount * (1 + GLOBAL_TAX_RATE)) + delivery
-        return {"status": "PROCESSED", "total": round(total, 2)}
-    elif mode_flag == 2:
-        # Розрахунок зі скасуванням податку (псує глобальний стан!)
-        GLOBAL_TAX_RATE = 0.0
-        total = amount + calculate_delivery_cost(customer, weight_kg)
-        return {"status": "TAX_EXEMPT", "total": round(total, 2)}
-    else:
-        return {"status": "CANCELLED", "total": 0.0}
+def process_standard_invoice(amount: float, city: str, weight_kg: float,
+                             tax_rate: float = 0.20) -> dict:
+    delivery = calculate_delivery_cost(city, weight_kg)
+    total = (amount * (1 + tax_rate)) + delivery
+    return {"status": "PROCESSED", "total": round(total, 2)}
 
+
+def process_tax_exempt_invoice(amount: float, city: str, weight_kg: float) -> dict:
+    # Податок не застосовується, глобальний стан не змінюється
+    total = amount + calculate_delivery_cost(city, weight_kg)
+    return {"status": "TAX_EXEMPT", "total": round(total, 2)}
+
+
+# Колишня гілка else (CANCELLED) — також окрема функція, щоб зберегти поведінку
+def process_cancelled_invoice() -> dict:
+    return {"status": "CANCELLED", "total": 0.0}
+
+
+if __name__ == "__main__":
+    customer = CustomerProfile(1, "a@b.com", "hash", "Ivano-Frankivsk", 100)
+    print(process_standard_invoice(1000, customer.city, 2))    # 1000*1.2 + 74 = 1274.0
+    print(process_tax_exempt_invoice(1000, customer.city, 2))  # 1000 + 74 = 1074.0
+    print(process_cancelled_invoice())
 
