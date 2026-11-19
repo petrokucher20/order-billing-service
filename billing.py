@@ -11,7 +11,7 @@ class CustomerProfile:
         self.loyalty_points = loyalty_points
 
 def calculate_delivery_cost(city: str, weight_kg: float) -> float:
-    base_rate = 50.0 if city == "Ivano-Frankivsk" else 110.0
+    base_rate = 80.0 if city == "Kyiv" else (50.0 if city == "Ivano-Frankivsk" else 110.0)
     return base_rate + (weight_kg * 12.0)
 
 # Дефект 3 (Control Coupling): параметр mode_flag керує внутрішнім розгалуженням функції
